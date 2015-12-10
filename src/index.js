@@ -19,10 +19,12 @@ function init () {
   var upgradeMsg = document.getElementById('upgrade-msg');
 
   var delays = [];
+  var timeDifferences = [];
   var averageDelay;
+  var averageTimeDifference;
 
   p2psocket.on('peer-msg', function(data) {
-    var delay = Date.now() - data.timestamp;
+    var delay = Date.now() - averageTimeDifference - data.timestamp;
 
     var li = document.createElement("li");
     li.appendChild(document.createTextNode(`${ data.timestamp } [${ delay }ms]{${ delay - averageDelay }}: ${ data.text }`));
@@ -30,18 +32,26 @@ function init () {
   });
 
   p2psocket.on('down-beat', function (data) {
-    console.log("Hearbeat", data);
+    var delay = (Date.now() - data.up) / 2;
+
     delays = delays.slice(-100);
-    delays.push(Date.now() - data.up);
+    timeDifferences = timeDifferences.slice(-1000);
+
+    delays.push(delay);
     averageDelay = delays.reduce((a, b) => a + b, 0) / delays.length;
-    document.getElementById('delay').innerHTML = averageDelay + "ms";
+
+    var timeDifference = (Date.now() - averageDelay) - data.down;
+    timeDifferences.push(timeDifference);
+    averageTimeDifference = timeDifferences.reduce((a, b) => a + b, 0) / timeDifferences.length;
+
+    document.getElementById('delay').innerHTML = `${ averageDelay }ms <br/>(Offset: ${ averageTimeDifference }ms)`;
   });
   p2psocket.on('up-beat', (data) => {
     data.down = Date.now();
     p2psocket.emit('down-beat', data);
   });
 
-  setInterval(() => p2psocket.emit('up-beat', { up: Date.now() }), 100);
+  var hearbeat = setInterval(() => p2psocket.emit('up-beat', { up: Date.now() }), 100);
 
   form.addEventListener('submit', function(e, d) {
     e.preventDefault();
@@ -65,6 +75,7 @@ function init () {
     p2psocket.useSockets = false;
     upgradeMsg.innerHTML = "WebRTC connection established!";
     privateButton.disabled = true;
+    clearInterval(hearbeat);
   }
 
 }
