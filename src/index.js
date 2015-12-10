@@ -29,15 +29,19 @@ function init () {
     msgList.appendChild(li);
   });
 
-  p2psocket.on('heartbeat', function (data) {
+  p2psocket.on('down-beat', function (data) {
     console.log("Hearbeat", data);
     delays = delays.slice(-100);
-    delays.push(Date.now() - data.timestamp);
+    delays.push(Date.now() - data.up);
     averageDelay = delays.reduce((a, b) => a + b, 0) / delays.length;
     document.getElementById('delay').innerHTML = averageDelay + "ms";
   });
+  p2psocket.on('up-beat', (data) => {
+    data.down = Date.now();
+    p2psocket.emit('down-beat', data);
+  });
 
-  setInterval(() => p2psocket.emit('hearbeat', { timestamp: Date.now() }), 100);
+  setInterval(() => p2psocket.emit('up-beat', { up: Date.now() }), 100);
 
   form.addEventListener('submit', function(e, d) {
     e.preventDefault();

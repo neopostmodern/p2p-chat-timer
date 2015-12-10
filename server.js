@@ -17,9 +17,11 @@ io.on('connection', function(socket) {
     socket.broadcast.emit('peer-msg', data);
   });
 
-  socket.on('hearbeat', function(data) {
-    console.log(`Hearbeat ${ socket.id }:`, data);
-    socket.broadcast.emit('heartbeat', data);
+  socket.on('up-beat', function(data) {
+    socket.broadcast.emit('up-beat', data);
+  });
+  socket.on('down-beat', function(data) {
+    socket.broadcast.emit('down-beat', data);
   });
 
   socket.on('go-private', function(data) {
